@@ -237,22 +237,53 @@ tr:hover td{background:#fafcfa}
 
 <script>
 // ══════════════════════════════════════════
-// LOCALSTORAGE — clave de almacenamiento
+// LOCALSTORAGE — clave de almacenamiento + FALLBACK
 // ══════════════════════════════════════════
 const LS_KEY = 'ideasma_eventos_v1';
+let storageAvailable = false;
+let memoryStorage = {};
+
+// Detectar si localStorage realmente funciona (no solo si existe)
+function testStorageAvailable(){
+  try{
+    const test = '__storage_test__';
+    localStorage.setItem(test, test);
+    localStorage.removeItem(test);
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+
+storageAvailable = testStorageAvailable();
 
 function guardarEstado(){
+  const data = JSON.stringify({solicitudes, registro, nextFId});
   try{
-    localStorage.setItem(LS_KEY, JSON.stringify({solicitudes, registro, nextFId}));
+    if(storageAvailable){
+      localStorage.setItem(LS_KEY, data);
+    } else {
+      memoryStorage[LS_KEY] = data;
+    }
     const ind = document.getElementById('save-indicator');
-    ind.classList.add('visible');
-    setTimeout(()=>ind.classList.remove('visible'), 2000);
-  }catch(e){console.warn('localStorage no disponible',e);}
+    if(ind){
+      ind.classList.add('visible');
+      setTimeout(()=>ind.classList.remove('visible'), 2000);
+    }
+  }catch(e){
+    memoryStorage[LS_KEY] = data;
+    console.warn('Fallback a memoria para esta sesión',e);
+  }
 }
 
 function cargarEstado(){
   try{
-    const raw = localStorage.getItem(LS_KEY);
+    let raw;
+    if(storageAvailable){
+      raw = localStorage.getItem(LS_KEY);
+    } else {
+      raw = memoryStorage[LS_KEY];
+    }
     if(raw){
       const data = JSON.parse(raw);
       solicitudes = data.solicitudes || SOLICITUDES_INICIALES;
